@@ -1,3 +1,4 @@
+
 //3350
 //program: walk.cpp
 //author:  Gordon Griesel
@@ -473,8 +474,8 @@ void render(void)
 	glBegin(GL_QUADS);
 		glTexCoord2f(tx,      ty+.5); glVertex2i(cx-w, cy-h);
 		glTexCoord2f(tx,      ty);    glVertex2i(cx-w, cy+h);
-		glTexCoord2f(tx+.125, ty);    glVertex2i(cx+w, cy+h);
-		glTexCoord2f(tx+.125, ty+.5); glVertex2i(cx+w, cy-h);
+		glTexCoord2f(tx-.125, ty);    glVertex2i(cx+w, cy+h);
+		glTexCoord2f(tx-.125, ty+.5); glVertex2i(cx+w, cy-h);
 	glEnd();
 	glPopMatrix();
 	glBindTexture(GL_TEXTURE_2D, 0);
