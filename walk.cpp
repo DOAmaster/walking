@@ -81,7 +81,7 @@ public:
 
 class Global {
 public:
-    	int keys[65536];
+    //	int keys[65536];
 	int done;
 	int xres, yres;
 	int walk;
@@ -90,6 +90,7 @@ public:
 	Ppmimage *walkImage;
 	GLuint walkTexture;
 	Vec box[20];
+	char keys[65536];
 	Global() {
 		done=0;
 		xres=800;
@@ -103,6 +104,7 @@ public:
 			box[i][1] = rnd() * (yres-220) + 220.0;
 			box[i][2] = 0.0;
 		}
+		//sets the character array with the max ammount of bytes
 		memset(keys, 0, 65536);
 	}
 } gl;
@@ -281,6 +283,44 @@ void checkResize(XEvent *e)
 	}
 }
 
+
+void screenCapture() {
+
+	//allocate memory for the glRedPixles buffer
+	static int num = 0;
+	unsigned char *data = new unsigned char[gl.xres*gl.yres*3];	
+
+	
+	glReadPixels(0,0, gl.xres, gl.yres, GL_RGB, gl.xres*gl.yres*3, data);
+	
+	char ts[64];
+	sprintf(ts,"pic%03i.pmm", num++);
+
+	FILE *fpo = fopen(ts,"w");
+	if (fpo) {
+		fprintf(fpo, "P6\n");
+		fprintf(fpo, "%i %i", gl.xres, gl.yres);
+		fprintf(fpo, "255\n");
+		unsigned char *p = data;
+		p += ((gl.yres-1) * gl.xres*3);
+
+		for ( int j = 0; j < (gl.yres*3); j++) {
+		    for ( int i =0; i<gl.xres*3; i++) {
+
+			fprintf(fpo, "%c", *(p+j));
+		}
+		    p = p - (gl.xres*3);
+
+		}
+	}
+
+
+		fclose(fpo);
+
+	delete [] data;
+
+}
+
 void init() {
 
 }
@@ -318,8 +358,9 @@ void checkKeys(XEvent *e)
 	//index into hash table
 	int key = XLookupKeysym(&e->xkey, 0);
 	if (e->type == KeyRelease) {
-
+	    //index of key perfect hash table no collisions
 	    gl.keys[key] = 0;
+
 		if (key == XK_Shift_L || key == XK_Shift_R)
 			shift=0;
 		return;
@@ -338,6 +379,9 @@ void checkKeys(XEvent *e)
 	}
 	if (shift) {}
 	switch (key) {
+	    	case XK_x:
+		    	screenCapture();
+			break;
 		case XK_w:
 			timers.recordTime(&timers.walkTime);
 			gl.walk ^= 1;
@@ -365,6 +409,8 @@ void checkKeys(XEvent *e)
 
 }
 
+
+
 Flt VecNormalize(Vec vec)
 {
 	Flt len, tlen;
@@ -386,7 +432,7 @@ Flt VecNormalize(Vec vec)
 
 void physics(void)
 {
-	if (gl.walk || gl.keys[XK_Right]) {
+	if (gl.walk || gl.keys[XK_Right] || gl.keys[XK_Left]) {
 		//man is walking...
 		//when time is up, advance the frame.
 		timers.recordTime(&timers.timeCurrent);
@@ -451,6 +497,35 @@ void render(void)
 			glVertex2i(20,  0);
 		glEnd();
 		glPopMatrix();
+	    if (gl.keys[XK_Left]) {
+		glPushMatrix();
+		glTranslated(gl.box[i][0],gl.box[i][1],gl.box[i][2]);
+		glColor3f(0.2, 0.2, 0.2);
+		glBegin(GL_QUADS);
+			glVertex2i( 0,  0);
+			glVertex2i( 0, 30);
+			glVertex2i(20, 30);
+			glVertex2i(20,  0);
+		glEnd();
+		glPopMatrix();
+	    } else if (gl.keys[XK_Right]) {
+
+		gl.box[i][0] -= 2.0 * (0.05 /gl.delay);
+		if (gl.box[i][0] < -10.0)
+		    gl.box[i][0] += gl.xres +10.0;
+
+		glPushMatrix();
+		glTranslated(gl.box[i][0],gl.box[i][1],gl.box[i][2]);
+		glColor3f(0.2, 0.2, 0.2);
+		glBegin(GL_QUADS);
+			glVertex2i( 0,  0);
+			glVertex2i( 0, 30);
+			glVertex2i(20, 30);
+			glVertex2i(20,  0);
+		glEnd();
+		glPopMatrix();
+
+	    }
 	}
 	float h = 200.0;
 	float w = h * 0.5;
@@ -499,6 +574,8 @@ void render(void)
 	r.bot = gl.yres - 20;
 	r.left = 10;
 	r.center = 0;
+
+	ggprint8b(&r, 16, c, "X   Take Screenshot");
 	ggprint8b(&r, 16, c, "W   Walk cycle");
 	ggprint8b(&r, 16, c, "+   faster");
 	ggprint8b(&r, 16, c, "-   slower");
